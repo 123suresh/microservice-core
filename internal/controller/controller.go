@@ -8,5 +8,7 @@ type Controller struct {
 
 func NewController() *Controller {
 	ctl := &Controller{}
+	ctl.Router = gin.Default()
+	ctl.Routes()
 	return ctl
 }
