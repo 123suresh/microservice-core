@@ -6,10 +6,10 @@ import (
 )
 
 func (ctl *Controller) CreateWordPress(c *gin.Context) {
-	// userResponse, code, err := "controller for wordpress"
+	userResponse, code, err := ctl.svc.CreateWordPress()
 	// userResponse := "controller for wordpress"
-	// if err != nil {
-	// 	response.ERROR(c, err, code)
-	// }
-	response.JSON(c, "controller for wordpress", "Success", 0, 0)
+	if err != nil {
+		response.ERROR(c, err, code)
+	}
+	response.JSON(c, userResponse, "Success", 0, 0)
 }
