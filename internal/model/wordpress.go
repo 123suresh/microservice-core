@@ -16,7 +16,6 @@ type WordPressRequest struct {
 type WordPressResponse struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace"`
-	Message   string `json:"message"`
 }
 
 func RequestWordPress(WordPressreq *WordPressRequest) *Wordpress {

@@ -254,3 +254,15 @@ func createWordpressPVC(pname string, wnamespace string) error {
 	log.Info("Created Wordpress PVC")
 	return nil
 }
+
+func (svc *Service) GetWordPress() ([]model.WordPressResponse, int, error) {
+	result, err := svc.repo.GetWordPress()
+	if err != nil {
+		return nil, http.StatusBadRequest, err
+	}
+	response := []model.WordPressResponse{}
+	for _, detail := range result {
+		response = append(response, *detail.WordPressResponse())
+	}
+	return response, http.StatusOK, nil
+}

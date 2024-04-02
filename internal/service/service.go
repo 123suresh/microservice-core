@@ -11,6 +11,7 @@ type Service struct {
 
 type ServiceInterface interface {
 	CreateWordPress(req *model.WordPressRequest) (*model.WordPressResponse, int, error)
+	GetWordPress() ([]model.WordPressResponse, int, error)
 }
 
 func NewService(repo repository.RepoInterface) ServiceInterface {
