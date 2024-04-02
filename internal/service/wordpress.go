@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/core-api/internal/model"
 	"github.com/core-api/internal/utils/k8s"
 	"github.com/core-api/internal/utils/wordpress"
 	log "github.com/sirupsen/logrus"
@@ -13,42 +14,56 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (svc *Service) CreateWordPress() (string, int, error) {
-	wname := "wordpress"
-	port := int32(30001)
-	err := createWordpressService(wname, port)
-	if err == nil {
-		wordpress.CreateSecretKey(wname)
-		err = wordpress.CreateDatabasePvc(wname)
-		if err != nil {
-			return "", http.StatusBadRequest, err
-		}
-		err = createWordpressPVC(wname)
-		if err != nil {
-			return "", http.StatusBadRequest, err
-		}
-		err = wordpress.CreateDatabaseService(wname)
-		if err != nil {
-			return "", http.StatusBadRequest, err
-		}
-		err = wordpress.CreateDatabaseDeployment(wname)
-		if err != nil {
-			return "", http.StatusBadRequest, err
-		}
-		err = createWordPressDeployment(wname)
-		if err != nil {
-			return "", http.StatusBadRequest, err
-		}
-		return "", http.StatusBadRequest, err
+func (svc *Service) CreateWordPress(req *model.WordPressRequest) (*model.WordPressResponse, int, error) {
+	userInput := model.RequestWordPress(req)
+	wname := req.Name
+	wnamespace := req.Namespace
+	count, countErr := svc.repo.CountUser()
+	if countErr != nil {
+		return nil, http.StatusBadRequest, countErr
 	}
-	// return err
-	return "wordpress created", http.StatusCreated, nil
+	port := int32(30002 + count)
+	err := createWordpressService(wname, wnamespace, port)
+	if err == nil {
+		wordpress.CreateSecretKey(wname, wnamespace)
+		err = wordpress.CreateDatabasePvc(wname, wnamespace)
+		if err != nil {
+			return nil, http.StatusBadRequest, err
+		}
+		err = createWordpressPVC(wname, wnamespace)
+		if err != nil {
+			return nil, http.StatusBadRequest, err
+		}
+		err = wordpress.CreateDatabaseService(wname, wnamespace)
+		if err != nil {
+			return nil, http.StatusBadRequest, err
+		}
+		err = wordpress.CreateDatabaseDeployment(wname, wnamespace)
+		if err != nil {
+			return nil, http.StatusBadRequest, err
+		}
+		err = createWordPressDeployment(wname, wnamespace)
+		if err != nil {
+			return nil, http.StatusBadRequest, err
+		}
+
+		result, err := svc.repo.CreateWordPress(userInput)
+		if err != nil {
+			return nil, http.StatusBadRequest, err
+		}
+
+		response := result.WordPressResponse()
+		return response, http.StatusCreated, nil
+
+	}
+
+	return nil, http.StatusBadRequest, err
 }
 
-func createWordPressDeployment(wname string) error {
+func createWordPressDeployment(wname string, wnamespace string) error {
 	clientset := k8s.GetConfig()
-	namespace := k8s.GetNamespace("wordpress", wname)
-	deploymentsClient := clientset.AppsV1().Deployments(namespace)
+	// namespace := k8s.GetNamespace(wnamespace, wname)
+	deploymentsClient := clientset.AppsV1().Deployments(wnamespace)
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: wname,
@@ -136,24 +151,34 @@ func int32ptr(i int32) *int32 {
 	return &i
 }
 
-func createWordpressService(wname string, port int32) error {
-	clientset := k8s.GetConfig()
-	namespace := k8s.GetNamespace("wordpress", wname)
-	nsSpec := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
-	// err := CheckIfNamespaceExist(namespace)
-	// if err != nil {
-	_, err := clientset.CoreV1().Namespaces().Create(context.Background(), nsSpec, metav1.CreateOptions{})
+func CheckIfNamespaceExist(namespace string) error {
+	client := k8s.GetConfig()
+	_, err := client.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
 	if err != nil {
-		log.Error("Failed to create namespace :: ", err)
+		log.Error(err)
 		return err
 	}
-	log.Info("Created Namespace " + namespace)
-	// }
-	servicesClinet := clientset.CoreV1().Services(namespace)
+	return nil
+}
+
+func createWordpressService(wname string, wnamespace string, port int32) error {
+	clientset := k8s.GetConfig()
+	// namespace := k8s.GetNamespace(wnamespace, wname)
+	nsSpec := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: wnamespace}}
+	err := CheckIfNamespaceExist(wnamespace)
+	if err != nil {
+		_, err := clientset.CoreV1().Namespaces().Create(context.Background(), nsSpec, metav1.CreateOptions{})
+		if err != nil {
+			log.Error("Failed to create namespace :: ", err)
+			return err
+		}
+		log.Info("Created Namespace " + wnamespace)
+	}
+	servicesClinet := clientset.CoreV1().Services(wnamespace)
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      wname,
-			Namespace: namespace,
+			Namespace: wnamespace,
 			Labels: map[string]string{
 				"app": wname,
 			},
@@ -185,16 +210,16 @@ func createWordpressService(wname string, port int32) error {
 	return nil
 }
 
-func createWordpressPVC(pname string) error {
+func createWordpressPVC(pname string, wnamespace string) error {
 	clinetset := k8s.GetConfig()
-	namespace := k8s.GetNamespace("wordpress", pname)
+	// namespace := k8s.GetNamespace(wnamespace, pname)
 
-	pvcClinet := clinetset.CoreV1().PersistentVolumeClaims(namespace)
+	pvcClinet := clinetset.CoreV1().PersistentVolumeClaims(wnamespace)
 
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      pname + "-pv-claim",
-			Namespace: namespace,
+			Namespace: wnamespace,
 			Labels: map[string]string{
 				"app": pname,
 			},
