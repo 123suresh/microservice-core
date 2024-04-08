@@ -8,6 +8,7 @@ type WordpressRepoInterface interface {
 	CreateWordPress(data *model.Wordpress) (*model.Wordpress, error)
 	CountUser() (int64, error)
 	GetWordPress() ([]model.Wordpress, error)
+	DeleteWordPress(req *model.DelWordpress) error
 }
 
 func (repo *Repo) CreateWordPress(data *model.Wordpress) (*model.Wordpress, error) {
@@ -34,4 +35,13 @@ func (repo *Repo) GetWordPress() ([]model.Wordpress, error) {
 		return nil, err
 	}
 	return details, nil
+}
+
+func (repo *Repo) DeleteWordPress(req *model.DelWordpress) error {
+	data := &model.Wordpress{}
+	err := repo.db.Model(&model.Wordpress{}).Where("namespace=?", req.Namespace).Delete(&data).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }

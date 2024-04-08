@@ -31,3 +31,8 @@ func (w *Wordpress) WordPressResponse() *WordPressResponse {
 		Namespace: w.Namespace,
 	}
 }
+
+type DelWordpress struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+}

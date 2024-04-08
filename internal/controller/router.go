@@ -8,6 +8,7 @@ func (ctl *Controller) Routes() {
 	ctl.Router.Use(CORSMiddleware())
 	ctl.Router.POST("/wordpress", ctl.CreateWordPress)
 	ctl.Router.GET("/wordpress", ctl.GetWordPress)
+	ctl.Router.DELETE("/wordpress", ctl.DeleteWordpress)
 }
 
 func CORSMiddleware() gin.HandlerFunc {

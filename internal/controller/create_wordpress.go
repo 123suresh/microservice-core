@@ -34,3 +34,19 @@ func (ctl *Controller) GetWordPress(c *gin.Context) {
 	}
 	response.JSON(c, userResponse, "Success", 0, 0)
 }
+
+func (ctl *Controller) DeleteWordpress(c *gin.Context) {
+	delWordpress := &model.DelWordpress{}
+	err := c.ShouldBindJSON(&delWordpress)
+	if err != nil {
+		logrus.Error("json bind error :: ", err)
+		response.ERROR(c, err, http.StatusBadRequest)
+		return
+	}
+	code, err := ctl.svc.DeleteWordPress(delWordpress)
+	if err != nil {
+		response.ERROR(c, err, code)
+		return
+	}
+	response.JSON(c, "Wordpress deleted", "Success", 0, 0)
+}

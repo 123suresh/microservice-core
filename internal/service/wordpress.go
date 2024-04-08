@@ -266,3 +266,21 @@ func (svc *Service) GetWordPress() ([]model.WordPressResponse, int, error) {
 	}
 	return response, http.StatusOK, nil
 }
+
+func (svc *Service) DeleteWordPress(req *model.DelWordpress) (int, error) {
+	clientset := k8s.GetConfig()
+	err := CheckIfNamespaceExist(req.Namespace)
+	if err == nil {
+		err := clientset.CoreV1().Namespaces().Delete(context.Background(), req.Namespace, metav1.DeleteOptions{})
+		if err != nil {
+			log.Error("Failed to create namespace :: ", err)
+			return http.StatusBadRequest, err
+		}
+		log.Info("Deleted Namespace " + req.Namespace)
+	}
+	err = svc.repo.DeleteWordPress(req)
+	if err != nil {
+		return http.StatusBadRequest, err
+	}
+	return http.StatusOK, nil
+}
