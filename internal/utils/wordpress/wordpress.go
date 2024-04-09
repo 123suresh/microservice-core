@@ -11,10 +11,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateSecretKey(wname string) {
+func CreateSecretKey(wname string, wnamespace string) {
 	clientset := k8s.GetConfig()
-	namespace := k8s.GetNamespace("wordpress", wname)
-	secretClinet := clientset.CoreV1().Secrets(namespace)
+	// namespace := k8s.GetNamespace(wnamespace, wname)
+	secretClinet := clientset.CoreV1().Secrets(wnamespace)
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: wname + "-mysql-pass",
@@ -45,15 +45,15 @@ func CreateSecretKey(wname string) {
 	}
 }
 
-func CreateDatabasePvc(pname string) error {
+func CreateDatabasePvc(pname string, wnamespace string) error {
 	clinetset := k8s.GetConfig()
-	namespace := k8s.GetNamespace("wordpress", pname)
-	pvcClinet := clinetset.CoreV1().PersistentVolumeClaims(namespace)
+	// namespace := k8s.GetNamespace(wnamespace, pname)
+	pvcClinet := clinetset.CoreV1().PersistentVolumeClaims(wnamespace)
 
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      pname + "-mysql-pv-claim",
-			Namespace: namespace,
+			Namespace: wnamespace,
 			Labels: map[string]string{
 				"app": pname,
 			},
@@ -79,10 +79,10 @@ func CreateDatabasePvc(pname string) error {
 	return nil
 }
 
-func CreateDatabaseDeployment(dname string) error {
+func CreateDatabaseDeployment(dname string, wnamespace string) error {
 	clientset := k8s.GetConfig()
-	namespace := k8s.GetNamespace("wordpress", dname)
-	deploymentsClient := clientset.AppsV1().Deployments(namespace)
+	// namespace := k8s.GetNamespace(wnamespace, dname)
+	deploymentsClient := clientset.AppsV1().Deployments(wnamespace)
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: dname + "-mysql",
@@ -157,15 +157,15 @@ func CreateDatabaseDeployment(dname string) error {
 	return nil
 }
 
-func CreateDatabaseService(dname string) error {
+func CreateDatabaseService(dname string, wnamespace string) error {
 	clientset := k8s.GetConfig()
-	namespace := k8s.GetNamespace("wordpress", dname)
-	servicesClinet := clientset.CoreV1().Services(namespace)
+	// namespace := k8s.GetNamespace(wnamespace, dname)
+	servicesClinet := clientset.CoreV1().Services(wnamespace)
 
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dname + "-mysql",
-			Namespace: namespace,
+			Namespace: wnamespace,
 
 			Labels: map[string]string{
 				"app": dname,

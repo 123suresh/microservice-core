@@ -1,0 +1,38 @@
+package model
+
+import "gorm.io/gorm"
+
+type Wordpress struct {
+	gorm.Model
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+}
+
+type WordPressRequest struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+}
+
+type WordPressResponse struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+}
+
+func RequestWordPress(WordPressreq *WordPressRequest) *Wordpress {
+	return &Wordpress{
+		Name:      WordPressreq.Name,
+		Namespace: WordPressreq.Namespace,
+	}
+}
+
+func (w *Wordpress) WordPressResponse() *WordPressResponse {
+	return &WordPressResponse{
+		Name:      w.Name,
+		Namespace: w.Namespace,
+	}
+}
+
+type DelWordpress struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+}
