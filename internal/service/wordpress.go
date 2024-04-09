@@ -23,7 +23,14 @@ func (svc *Service) CreateWordPress(req *model.WordPressRequest) (*model.WordPre
 		return nil, http.StatusBadRequest, countErr
 	}
 	port := int32(30002 + count)
-	err := createWordpressService(wname, wnamespace, port)
+
+	result, err := svc.repo.CreateWordPress(userInput)
+	if err != nil {
+		return nil, http.StatusBadRequest, err
+	}
+	response := result.WordPressResponse()
+
+	err = createWordpressService(wname, wnamespace, port)
 	if err == nil {
 		wordpress.CreateSecretKey(wname, wnamespace)
 		err = wordpress.CreateDatabasePvc(wname, wnamespace)
@@ -47,12 +54,6 @@ func (svc *Service) CreateWordPress(req *model.WordPressRequest) (*model.WordPre
 			return nil, http.StatusBadRequest, err
 		}
 
-		result, err := svc.repo.CreateWordPress(userInput)
-		if err != nil {
-			return nil, http.StatusBadRequest, err
-		}
-
-		response := result.WordPressResponse()
 		return response, http.StatusCreated, nil
 
 	}
@@ -267,20 +268,21 @@ func (svc *Service) GetWordPress() ([]model.WordPressResponse, int, error) {
 	return response, http.StatusOK, nil
 }
 
-func (svc *Service) DeleteWordPress(req *model.DelWordpress) (int, error) {
+func (svc *Service) DeleteWordPress(reqNamespace string) (int, error) {
 	clientset := k8s.GetConfig()
-	err := CheckIfNamespaceExist(req.Namespace)
+
+	err := svc.repo.DeleteWordPress(reqNamespace)
+	if err != nil {
+		return http.StatusBadRequest, err
+	}
+	err = CheckIfNamespaceExist(reqNamespace)
 	if err == nil {
-		err := clientset.CoreV1().Namespaces().Delete(context.Background(), req.Namespace, metav1.DeleteOptions{})
+		err := clientset.CoreV1().Namespaces().Delete(context.Background(), reqNamespace, metav1.DeleteOptions{})
 		if err != nil {
 			log.Error("Failed to create namespace :: ", err)
 			return http.StatusBadRequest, err
 		}
-		log.Info("Deleted Namespace " + req.Namespace)
-	}
-	err = svc.repo.DeleteWordPress(req)
-	if err != nil {
-		return http.StatusBadRequest, err
+		log.Info("Deleted Namespace " + reqNamespace)
 	}
 	return http.StatusOK, nil
 }
